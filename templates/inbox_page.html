@@ -16,8 +16,8 @@
                           <aside class="sm-side">
                               <div class="user-head">
                                   <div class="user-name">
-                                      <h5><a href="#">Trasca Lucian</a></h5>
-                                      <span><a href="#">lucian.test@gmail.com</a></span>
+                                      <h5><a href="#" id="username"></a></h5>
+                                      <span><a href="#" id="email"></a></span>
                                   </div>
                               </div>
                               <div class="inbox-body">
@@ -81,12 +81,12 @@
                           <aside class="lg-side">
                               <div class="inbox-head">
                                   <h3>Inbox</h3>
-                                  <form action="#" class="pull-right position">
+                                  <!-- <form action="#" class="pull-right position">
                                       <div class="input-append">
                                           <input type="text" class="sr-input" placeholder="Search Mail">
                                           <button class="btn sr-btn" type="button"><i class="fa fa-search"></i></button>
                                       </div>
-                                  </form>
+                                  </form> -->
                               </div>
                               <div class="inbox-body">
                                  <div class="mail-option">
@@ -314,5 +314,45 @@
                           </aside>
                       </div>
         </div>
+
+        <script>
+            window.onload = async function() {
+                var cookieArray = document.cookie.split(';');
+
+                var umailToken;
+                cookieArray.forEach(function(cookie) {
+                    var pair = cookie.split('=');
+                    var key = pair[0].trim(); // Remove any leading or trailing spaces
+                    var value = pair[1];
+                    if (key === 'umail_token') {
+                        umailToken = value;
+                    }
+                });
+                try {
+
+                    const response = await fetch('http://localhost:8000/users/me/', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${umailToken}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        // Handle successful login
+						const data = await response.json();
+                        document.getElementById("username").innerText = data.username;
+                        document.getElementById("email").innerText = data.email;
+                    } else {
+                        // Handle unsuccessful login
+                        console.error('Login failed');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+                
+                
+            }
+        </script>
 </body>
 </html>
