@@ -64,9 +64,28 @@
                                       </div><!-- /.modal-dialog -->
                                   </div><!-- /.modal -->
                               </div>
+
+                              <div id="emailModal" class="modal fade" role="dialog">
+                                <div class="modal-dialog">
+                                    <!-- Modal content -->
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                            <h4 class="modal-title">Email Details</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p><strong>From:</strong> <span id="modalSender"></span></p>
+                                            <p><strong>Subject:</strong> <span id="modalSubject"></span></p>
+                                            <p><strong>Message:</strong></p>
+                                            <p id="modalMessage"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                               <ul class="inbox-nav inbox-divider">
                                   <li class="active">
-                                      <a href="/inbox"><i class="fa fa-inbox"></i> Inbox <span class="label label-danger pull-right">2</span></a>
+                                      <a href="/inbox"><i class="fa fa-inbox"></i> Inbox <span class="label label-danger pull-right" id="inboxCount"></span></a>
                                   </li>
                                   <li>
                                       <a href="/sent"><i class="fa fa-envelope-o"></i> Sent Mail</a>
@@ -81,21 +100,8 @@
                           <aside class="lg-side">
                               <div class="inbox-head">
                                   <h3>Inbox</h3>
-                                  <!-- <form action="#" class="pull-right position">
-                                      <div class="input-append">
-                                          <input type="text" class="sr-input" placeholder="Search Mail">
-                                          <button class="btn sr-btn" type="button"><i class="fa fa-search"></i></button>
-                                      </div>
-                                  </form> -->
                               </div>
                               <div class="inbox-body">
-                                 <div class="mail-option">
-                                     <div class="btn-group">
-                                         <a href="/inbox" data-original-title="Refresh" data-placement="top" data-toggle="dropdown" href="#" class="btn mini tooltips">
-                                             <i class=" fa fa-refresh"></i>
-                                         </a>
-                                     </div>
-                                 </div>
                                   <table class="table table-inbox table-hover">
                                     <tbody id="emails">
 
@@ -161,22 +167,20 @@
                             var starred;
                             var sender = emails[i].sender;
                             var subject = emails[i].subject;
+                            var message = emails[i].message;
                             if(emails[i].read == true) {
                                 read = ''
                             } else {
                                 read = 'unread'
                             }
-                            if(emails[i].starred == true) {
+                            if(emails[i].starred_by_recepient == true) {
                                 starred = ' inbox-started'
                             } else {
                                 starred = ''
                             }
 
                             let email_card = `
-                            <tr class="${read}">
-                                <td class="inbox-small-cells">
-                                    <input type="checkbox" class="mail-checkbox">
-                                </td>
+                            <tr class="${read}" onclick="readEmail(${id}, '${sender}', '${subject.replace(/\n/g, '<br>')}', '${message.replace(/\n/g, '<br>')}')">
                                 <td class="inbox-small-cells" onclick="starUnstar(${id})"><i class="fa fa-star${starred}"></i></td>
                                 <td class="view-message dont-show">${sender}</td>
                                 <td class="view-message">${subject}</td>
@@ -193,10 +197,29 @@
                     console.error('Error:', error);
                 }
                 
+                try {
+                    const response = await fetch(`/getunreademailsnumber?&email=${email}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${umailToken}`
+                        }
+                    });
+                    if (response.ok) {    
+                        var count = await response.json()
+                        document.getElementById("inboxCount").innerText = count
+                    } else {
+                        console.error('Request failed');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                }
             }
+
             async function starUnstar(id) {
                 try {
-                    const response = await fetch(`/starunstar?email_id=${id}`, {
+                    const response = await fetch(`/starunstar?email_id=${id}&email=${email}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -204,6 +227,26 @@
                         }
                     });
                     location.reload() 
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
+
+            async function readEmail(id, sender, subject, message) {
+                try {
+                    const response = await fetch(`/reademail?email_id=${id}&email=${email}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${umailToken}`
+                        }
+                    });
+
+                    $('#modalSender').text(sender);
+                    $('#modalSubject').html(subject);
+                    $('#modalMessage').html(message);
+                    
+                    $('#emailModal').modal('show');
                 } catch (error) {
                     console.error('Error:', error);
                 }

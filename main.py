@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from database import SessionLocal, engine
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
 from models import Email, Base
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,29 +38,36 @@ app.add_middleware(
 def get_inbox_emails(email: str, db: Session = Depends(get_db)):
     return db.query(Email).filter(Email.recipient == email).all()
 
+@app.get("/getunreademailsnumber")
+def get_unread_emails_number(email: str, db: Session = Depends(get_db)):
+    return db.query(func.count(Email.id)).filter(and_(Email.recipient == email, Email.read == False)).scalar()
+
 @app.get("/getsent")
 def get_sent_emails(email: str, db: Session = Depends(get_db)):
     return db.query(Email).filter(Email.sender == email).all()
 
 @app.get("/getstared")
 def get_stared_emails(email: str, db: Session = Depends(get_db)):
-    return db.query(Email).filter(or_(Email.sender == email, Email.recipient == email), Email.starred == True).all()
+    return db.query(Email).filter(or_(and_(Email.sender == email, Email.starred_by_sender == True), and_(Email.recipient == email, Email.starred_by_recepient == True))).all()
 
 @app.post("/starunstar")
-async def star_unstar_email(email_id: int, db: Session = Depends(get_db)):
-    email = db.query(Email).filter(Email.id == email_id).first()
-    if email:
-        setattr(email, "starred", not email.starred)
+async def star_unstar_email(email_id: int, email: str, db: Session = Depends(get_db)):
+    email_data = db.query(Email).filter(Email.id == email_id).first()
+    if email_data:
+        if email_data.sender == email:
+            setattr(email_data, "starred_by_sender", not email_data.starred_by_sender)
+        elif email_data.recipient == email:
+            setattr(email_data, "starred_by_recepient", not email_data.starred_by_recepient)
         db.commit()
         return {"message": "Email updated successfully"}
     else:
         raise HTTPException(status_code=404, detail="Email not found")
 
 @app.post("/reademail")
-async def read_email(email_id: int, db: Session = Depends(get_db)):
-    email = db.query(Email).filter(Email.id == email_id).first()
-    if email:
-        setattr(email, "read", True)
+async def read_email(email_id: int, email: str, db: Session = Depends(get_db)):
+    email_data = db.query(Email).filter(Email.id == email_id).first()
+    if email_data and email_data.recipient == email:
+        setattr(email_data, "read", True)
         db.commit()
         return {"message": "Email updated successfully"}
     else:
@@ -68,7 +75,7 @@ async def read_email(email_id: int, db: Session = Depends(get_db)):
 
 @app.post("/sendemail")
 async def send_email(form_data: EmailForm, db: Session = Depends(get_db)):
-    email = Email(sender=form_data.sender, recipient=form_data.recipient, subject=form_data.subject, message=form_data.message, read=False, starred=False)
+    email = Email(sender=form_data.sender, recipient=form_data.recipient, subject=form_data.subject, message=form_data.message, read=False, starred_by_recepient=False, starred_by_sender=False)
     db.add(email)
     db.commit()
     return {"message": "succes"}
