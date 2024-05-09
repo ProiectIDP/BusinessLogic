@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from database import SessionLocal, engine
@@ -7,6 +7,7 @@ from sqlalchemy import or_, and_, func
 from models import Email, Base
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import timezone, datetime as dt
 
 def get_db():
     db = SessionLocal()
@@ -75,7 +76,9 @@ async def read_email(email_id: int, email: str, db: Session = Depends(get_db)):
 
 @app.post("/sendemail")
 async def send_email(form_data: EmailForm, db: Session = Depends(get_db)):
-    email = Email(sender=form_data.sender, recipient=form_data.recipient, subject=form_data.subject, message=form_data.message, read=False, starred_by_recepient=False, starred_by_sender=False)
+    now = dt.now(timezone.utc)
+    timestamp = dt.isoformat(now)
+    email = Email(sender=form_data.sender, recipient=form_data.recipient, subject=form_data.subject, message=form_data.message, timestamp=timestamp, read=False, starred_by_recepient=False, starred_by_sender=False)
     db.add(email)
     db.commit()
     return {"message": "succes"}

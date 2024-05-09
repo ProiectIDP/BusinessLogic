@@ -70,7 +70,7 @@
                                     <!-- Modal content -->
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                            <button type="button" class="close" data-dismiss="modal" onclick="location.reload()">&times;</button>
                                             <h4 class="modal-title">Email Details</h4>
                                         </div>
                                         <div class="modal-body">
@@ -168,6 +168,16 @@
                             var sender = emails[i].sender;
                             var subject = emails[i].subject;
                             var message = emails[i].message;
+                            var email_date = new Date(emails[i].timestamp);
+                            var current_date = new Date();
+                            var date_to_show;
+                            if(current_date.getFullYear() != email_date.getFullYear()) {
+                                date_to_show = (email_date.getDate() < 10 ? '0' : '') + email_date.getDate()+'.'+(email_date.getMonth() < 9 ? '0' : '') + (email_date.getMonth()+1)+'.'+email_date.getFullYear()
+                            } else if(current_date.getMonth() != email_date.getMonth() || current_date.getDate() != email_date.getDate()) {
+                                date_to_show = email_date.toLocaleString('default', { month: 'short' })+' '+(email_date.getDate() < 10 ? '0' : '') + email_date.getDate()
+                            } else {
+                                date_to_show = (email_date.getHours() < 10 ? '0' : '') + email_date.getHours()+':'+(email_date.getMinutes() < 10 ? '0' : '') + email_date.getMinutes()
+                            }
                             if(emails[i].read == true) {
                                 read = ''
                             } else {
@@ -185,7 +195,7 @@
                                 <td class="view-message dont-show">${sender}</td>
                                 <td class="view-message">${subject}</td>
                                 <td class="view-message inbox-small-cells"></td>
-                                <td class="view-message text-right">March 15</td>
+                                <td class="view-message text-right">${date_to_show}</td>
                             </tr>
                             `;
                             document.getElementById("emails").innerHTML += email_card
